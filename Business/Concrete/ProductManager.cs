@@ -1,4 +1,6 @@
 ﻿using Business.Abstract;
+using Business.Constants;
+using Core.Utilities.Results;
 using DataAccess.Abstract;
 using Entities.Concrete;
 using Entities.DTOs;
@@ -22,40 +24,62 @@ namespace Business.Concrete
             _productDal = productDal;
         }
 
-        public void Add(Product product)
+        public IResult Add(Product product)
         {
+            if (product.ProductName.Length<2)
+            {
+                return new ErrorResult(Messages.ProductNameInvalid);
+            }
             _productDal.Add(product);
+            return new SuccessResult(Messages.ProductAdded);
         }
 
-        public void Delete(Product product)
+        public IResult Delete(Product product)
         {
             _productDal.Delete(product);
+            return new SuccessResult(Messages.ProductDeleted);
         }
 
-        public Product Get(Product product)
+        public IDataResult<Product> Get(Product product)
         {
-            return _productDal.Get(p=> p.ProductName==product.ProductName);
+            // dataresult da true gondermek yerine success kullandik
+            return new SuccessDataResult<Product>(_productDal.Get(p=> p.ProductName==product.ProductName),"Urunler Listelendi.");
         }
 
-        public List<Product> GetAll()
+        public IDataResult<List<Product>> GetAll()
         {
-            return _productDal.GetAll();
+            if (DateTime.Now.Hour == 22)
+            {
+                return new ErrorDataResult<List<Product>>(_productDal.GetAll(), Messages.MaintenanceTime);
+            }
+            return new SuccessDataResult<List<Product>>(_productDal.GetAll(),Messages.ProductsListed);
             //Is kodlari buraya gelecek
         }
 
-        public List<Product> GetAllByCategoryId(int id)
+        public IDataResult<List<Product>> GetAllByCategoryId(int id)
         {
-            return _productDal.GetAll(p => p.ProductId == id);
+            return new SuccessDataResult<List<Product>>(_productDal.GetAll(p => p.CategoryId == id), Messages.ProductsListed);
         }
 
-        public List<Product> GetAllByUnitPrice(decimal min, decimal max)
+        public IDataResult<List<Product>> GetAllByUnitPrice(decimal min, decimal max)
         {
-            return _productDal.GetAll(p => p.UnitPrice >= min && p.UnitPrice<=max);
+            return new SuccessDataResult<List<Product>>(_productDal.GetAll(p => p.UnitPrice >= min && p.UnitPrice <= max), Messages.ProductsListed);
         }
 
-        public List<ProductDetailDto> GetProductDetails()
+        public IDataResult<Product> GetById(int productId)
         {
-            return _productDal.GetProductDetails();
+            return new SuccessDataResult<Product>(_productDal.Get(p => p.ProductId == productId), Messages.ProductListed);
         }
+
+        public IDataResult<List<ProductDetailDto>> GetProductDetails()
+        {
+            if (true)
+            {
+                return new ErrorDataResult<List<ProductDetailDto>>(Messages.MaintenanceTime);
+            }
+            return new SuccessDataResult<List<ProductDetailDto>>(_productDal.GetProductDetails(),Messages.ProductsListed);
+        }
+
+        
     }
 }
