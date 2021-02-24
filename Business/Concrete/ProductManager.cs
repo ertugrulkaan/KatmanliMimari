@@ -3,6 +3,7 @@ using Business.Constants;
 using Business.ValidationRules.FluentValidation;
 using Core.Aspects.Autofac.Validation;
 using Core.CrossCuttingConcerns.Validation;
+using Core.Utilities.Business;
 using Core.Utilities.Results;
 using DataAccess.Abstract;
 using Entities.Concrete;
@@ -10,6 +11,7 @@ using Entities.DTOs;
 using FluentValidation;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Business.Concrete
@@ -23,16 +25,24 @@ namespace Business.Concrete
         // liste dodnurenler getall
 
         IProductDal _productDal;
-        public ProductManager(IProductDal productDal)
+        //baska bir tabloyu alakadar eden bir kural gelecek ise o kurala ait nesnenin servisini cagirmaliyiz
+        ICategoryService _categoryService;
+        public ProductManager(IProductDal productDal,ICategoryService categoryService)
         {
             _productDal = productDal;
+            _categoryService = categoryService;
         }
+
 
         [ValidationAspect(typeof(ProductValidator))]
         public IResult Add(Product product)
         {
-            //Validation 
-
+            IResult result = BusinessRules.Run(CheckIfProductCountOfCategoryCorrect(product.CategoryId), CheckIfProductExits(product.ProductName), CheckIfCategoryCountLimitExceeded());
+            //yeni bir is kurali gelir ise uste virgul ile eklemek yeterli
+            if (result != null)
+            {
+                return result;
+            }
             _productDal.Add(product);
             return new SuccessResult(Messages.ProductAdded);
         }
@@ -46,7 +56,7 @@ namespace Business.Concrete
         public IDataResult<Product> Get(Product product)
         {
             // dataresult da true gondermek yerine success kullandik
-            return new SuccessDataResult<Product>(_productDal.Get(p=> p.ProductName==product.ProductName),"Urunler Listelendi.");
+            return new SuccessDataResult<Product>(_productDal.Get(p => p.ProductName == product.ProductName), "Urunler Listelendi.");
         }
 
         public IDataResult<List<Product>> GetAll()
@@ -55,7 +65,7 @@ namespace Business.Concrete
             {
                 return new ErrorDataResult<List<Product>>(Messages.MaintenanceTime);
             }
-            return new SuccessDataResult<List<Product>>(_productDal.GetAll(),Messages.ProductsListed);
+            return new SuccessDataResult<List<Product>>(_productDal.GetAll(), Messages.ProductsListed);
             //Is kodlari buraya gelecek
         }
 
@@ -76,13 +86,51 @@ namespace Business.Concrete
 
         public IDataResult<List<ProductDetailDto>> GetProductDetails()
         {
-            if (true)
+            if (DateTime.Now.Hour == 22)
             {
                 return new ErrorDataResult<List<ProductDetailDto>>(Messages.MaintenanceTime);
             }
-            return new SuccessDataResult<List<ProductDetailDto>>(_productDal.GetProductDetails(),Messages.ProductsListed);
+            return new SuccessDataResult<List<ProductDetailDto>>(_productDal.GetProductDetails(), Messages.ProductsListed);
         }
 
-        
+        [ValidationAspect(typeof(ProductValidator))]
+        public IResult Update(Product product)
+        {
+            if (CheckIfProductCountOfCategoryCorrect(product.CategoryId).Success)
+            {
+                _productDal.Update(product);
+                return new SuccessResult(Messages.ProductUpdated);
+            }
+            return new ErrorResult(Messages.ProductCannotUpdated);
+
+        }
+
+        private IResult CheckIfProductCountOfCategoryCorrect(int categoryId)
+        {
+            var result = _productDal.GetAll(p => p.CategoryId == categoryId).Count;
+            if (result >= 15)
+            {
+                return new ErrorResult(Messages.ProductCountOfCategoryError);
+            }
+            return new SuccessResult();
+        }
+        private IResult CheckIfProductExits(string productName)
+        {
+            bool result = _productDal.GetAll(p => p.ProductName == productName).Any();
+            if (result)
+            {
+                return new ErrorResult(Messages.ProductExitsError);
+            }
+            return new SuccessResult();
+        }
+        private IResult CheckIfCategoryCountLimitExceeded()
+        {
+            int result = _categoryService.GetAll().Data.Count;
+            if (result>15)
+            {
+                return new ErrorResult(Messages.CategoryCountLimitExceeded);
+            }
+            return new SuccessResult();
+        }
     }
 }
