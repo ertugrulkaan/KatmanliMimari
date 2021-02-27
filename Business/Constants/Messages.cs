@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 using System.Text;
 
 namespace Business.Constants
@@ -22,5 +23,7 @@ namespace Business.Constants
         public static string ProductExitsError = "Urun zaten sistemde kayitlidir";
 
         public static string CategoryCountLimitExceeded = "Kategori limiti asildi";
+
+        public static string AuthorizationDenied = "Yetkiniz yok";
     }
 }
