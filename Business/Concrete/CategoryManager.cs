@@ -19,12 +19,16 @@ namespace Business.Concrete
         // METHOD NEYE GIDECEK NE DONDURECEK
         public IDataResult<List<Category>> GetAll()
         {
-            return new SuccessDataResult<List<Category>>(_categoryDal.GetAll());
+            return new SuccessDataResult<List<Category>>(_categoryDal.GetAll(),"basarili");
         }
 
         public IDataResult<Category> GetById(int categoryId)
         {
             return new SuccessDataResult<Category>(_categoryDal.Get(c => c.CategoryId == categoryId));
         }
+        //public IDataResult<List<Category>> GetList()
+        //{
+        //    return new SuccessDataResult<List<Category>>(_categoryDal.GetList().ToList());
+        //}
     }
 }
